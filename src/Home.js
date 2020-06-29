@@ -1,5 +1,5 @@
 import React,{Component} from 'react';
-import { Layout, Menu, Typography, Carousel, Row, Col, Card, Descriptions, Button, Spin} from 'antd';
+import { Layout, Menu, Typography, Carousel, Row, Col, Card, Descriptions, Button, Spin, Form, Input, Select, Checkbox, Divider} from 'antd';
 import { HomeFilled, InfoCircleFilled, ToolFilled, ShoppingCartOutlined, PhoneFilled, LinkedinFilled,
     InstagramFilled, GoogleCircleFilled, FacebookFilled} from '@ant-design/icons';
 import RemoveFromQueueIcon from '@material-ui/icons/RemoveFromQueue';
@@ -9,7 +9,14 @@ import PrintIcon from '@material-ui/icons/Print';
 import TuneIcon from '@material-ui/icons/Tune';
 import RssFeedIcon from '@material-ui/icons/RssFeed';
 import { Map, Marker, Popup, TileLayer } from "react-leaflet";
-import {ProductCard} from 'react-ui-cards';
+import apple from './images/apple.jpg';
+import cctv from './images/cctv.png';
+import desktop from './images/desktop.png';
+import laptop from './images/laptop.png';
+import peripheral from './images/peripheral.jpg';
+import printer from './images/printer.png';
+import no_image from './images/no_image.png';
+import ProductCard from './ProductCard';
 import getProducts from './service';
 import './App.css';
 
@@ -23,8 +30,9 @@ class Home extends Component{
             lat: 28.587581,
             lng: 77.303374,
             zoom: 16,
+            productType : 'Desktops',
         };
-        
+        this.setProductType = this.setProductType.bind(this);
     }
 
     componentDidMount(){
@@ -41,12 +49,19 @@ class Home extends Component{
 
     handleClick = e => {
         this.setState({
-          current: e.key,
+          current : e.key,
         });
     };
 
+    setProductType(type){
+        this.setState({
+            productType : type
+        });
+    }
+
     render(){
 
+        const { Option } = Select;
         const { Header, Content, Footer } = Layout;
         const { Meta } = Card;
         const {Title} = Typography;
@@ -55,7 +70,28 @@ class Home extends Component{
         const curr = this.state.current;
         const gridStyle = {
             textAlign: 'center',
-          };
+        };
+
+        const tailLayout = {
+        wrapperCol: { offset: 8, span: 16 },
+        };  
+          
+        const onFinish = values => {
+            console.log('Success:', values);
+        };
+          
+        const onFinishFailed = errorInfo => {
+            console.log('Failed:', errorInfo);
+        };
+          
+        const prefixSelector = (
+            <Form.Item name="prefix" noStyle>
+                <Select style={{ width: 70 }}>
+                <Option value="86">+91</Option>
+                <Option value="87">+92</Option>
+                </Select>
+            </Form.Item>
+        );
           
 
         if(curr === 'home'){
@@ -110,11 +146,61 @@ class Home extends Component{
             </Row>;
         }
         else if(curr === 'products'){
-            let items = this.state.isLoaded ? this.state.products : null; 
-            console.log(items);
+            let items = this.state.isLoaded ? this.state.products.desktops : null; 
+            if(this.state.productType === 'Desktops'){
+                items = this.state.products.desktops;
+            }
+            else if(this.state.productType === 'Laptops'){
+                items = this.state.products.laptops;
+            }
+            else if(this.state.productType === 'Printers'){
+                items = this.state.products.printers;
+            }
+            else if(this.state.productType === 'Peripherals'){
+                items = this.state.products.peripherals;
+            }
+            else if(this.state.productType === 'Apple Products'){
+                items = this.state.products.apple;
+            }
+            else if(this.state.productType === 'CCTV Cameras'){
+                items = this.state.products.cctv;
+            }
             
             if(items != null){
-                content = <div>{items.map((el,index) => <ProductCard key={index} photos={[el.image]} price={'₹ '+el.price} productName={el.name} description={el.description} />)}</div> 
+                content = <div>
+                            <Row gutter={8} style={{ backgroundColor : '#01579B', padding : 20}}>
+                            {[{title : 'Desktops',image : desktop},
+                              {title : 'Laptops',image : laptop},
+                              {title : 'Printers',image : printer},
+                              {title : 'Peripherals',image : peripheral},
+                              {title : 'Apple Products',image : apple},
+                              {title : 'CCTV Cameras',image : cctv}].map((el,index) => 
+                                <Col span={4}>
+                                    <Card key={index}>
+                                        <Title 
+                                            level={4} style={{ textAlign : 'center'}}>
+                                            {el.title}
+                                        </Title>
+                                        <img src={el.image} alt={no_image} style={{margin : 4, width : 150, height : 120}}/>
+                                        <Button type="primary" block onClick={() => this.setProductType(el.title)}>View Products</Button>
+                                    </Card>
+                                </Col>)}
+                            </Row>
+                            <Divider/>
+                            <Title level={2}>{'Showing Results for '+this.state.productType}</Title>
+                            <Row>
+                                {items !== null && items.length > 0 ? items.map((el,index) => 
+                                <Col style={{ margin : '5dp'}}>
+                                    <ProductCard 
+                                        index={index} 
+                                        image={'http://127.0.0.1:8000'+el.image} 
+                                        title={el.name} 
+                                        price={el.price} 
+                                        oprice={el.original_price} 
+                                        description={el.description}/> 
+                                </Col>) : <Title level={4}>No results available</Title>}
+                            </Row> 
+                         </div>;
             }
             else {
                 content = <Spin/>;
@@ -173,18 +259,100 @@ class Home extends Component{
                 </Content>
 
                 <Footer style={{ textAlign: 'center'}}>
-                        <Map center={position} zoom={this.state.zoom} style={{width : 400, height:400}}>
-                            <TileLayer
-                            attribution='&amp;copy <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
-                            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                            />
-                            <Marker position={position}>
-                            <Popup>
-                                Electro-Comp Total Services <br /> 12/102, Eastend Apartment, Mayur Vihar Phase-1 Extn, Near New Ashok Nagar Metro Station
-                            </Popup>
-                            </Marker>
-                        </Map>
-                        <div>
+                        <Row gutter={16}>
+                            <Col span={10}>
+                                <Map center={position} zoom={this.state.zoom} style={{width : 400, height:400, marginLeft : 50, marginRight : 50}}>
+                                    <TileLayer
+                                    attribution='&amp;copy <a href="http://osm.org/copyright">OpenStreetMap</a> contributors'
+                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                    />
+                                    <Marker position={position}>
+                                    <Popup>
+                                        Electro-Comp Total Services <br /> 12/102, Eastend Apartment, Mayur Vihar Phase-1 Extn, Near New Ashok Nagar Metro Station
+                                    </Popup>
+                                    </Marker>
+                                </Map>
+                            </Col>
+
+                            <Col span={12}>
+                            <Card title="Contact Information">
+      
+                                <Form
+                                name="basic"
+                                initialValues={{ remember: true }}
+                                onFinish={onFinish}
+                                onFinishFailed={onFinishFailed}
+                                >
+                                <Form.Item
+                                    label="Name"
+                                    name="name"
+                                    rules={[{ required: true, message: 'Please input your name!' }]}
+                                >
+                                    <Input />
+                                </Form.Item>
+
+                                <Form.Item
+                                    label="Email"
+                                    name="email"
+                                    rules={[{ required: true, type: 'email', message: 'Please input your email!' }]}
+                                >
+                                    <Input />
+                                </Form.Item>
+
+                                <Form.Item
+                                    name="phone"
+                                    label="Phone Number"
+                                    rules={[{ required: true, message: 'Please input your phone number!' }]}>
+                                    <Input addonBefore={prefixSelector} style={{ width: '100%' }} />
+                                </Form.Item>
+                                <Form.Item name="checkbox-group" label="Requirements">
+                                    <Checkbox.Group>
+                                        <Row>
+                                            <Col span={8}>
+                                            <Checkbox value="Computer Repair" style={{ lineHeight: '32px' }}>
+                                            Computer Repair
+                                            </Checkbox>
+                                            </Col>
+                                            <Col span={8}>
+                                            <Checkbox value="Laptop Repair" style={{ lineHeight: '32px' }} >
+                                            Laptop Repair
+                                            </Checkbox>
+                                            </Col>
+                                            <Col span={8}>
+                                            <Checkbox value="CCTV Installation" style={{ lineHeight: '32px' }}>
+                                            CCTV Installation
+                                            </Checkbox>
+                                            </Col>
+                                            <Col span={8}>
+                                            <Checkbox value="Printer Repair" style={{ lineHeight: '32px' }}>
+                                            Printer Repair
+                                            </Checkbox>
+                                            </Col>
+                                            <Col span={8}>
+                                            <Checkbox value="Networking" style={{ lineHeight: '32px' }}>
+                                            Networking
+                                            </Checkbox>
+                                            </Col>
+                                            <Col span={8}>
+                                            <Checkbox value="Computer Optimization" style={{ lineHeight: '32px' }}>
+                                            Computer Optimization
+                                            </Checkbox>
+                                            </Col>
+                                        </Row>
+                                    </Checkbox.Group>
+                                </Form.Item>
+                                <Form.Item {...tailLayout}>
+                                    <Button type="primary" htmlType="submit">
+                                    Submit
+                                    </Button>
+                                </Form.Item>
+                            </Form>
+                            </Card>
+                            </Col>
+                        </Row>
+
+
+                        <div style={{ marginTop : 20}}>
                             Electro-Comp Total Services ©2020
                         </div>
                     </Footer>
